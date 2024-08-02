@@ -8,7 +8,6 @@ import { storeMessage, updateChatSession } from './controller';
 // Replace the uri string with your connection string.
 import langPoc from './lang-poc';
 var responseTime = require('response-time')
-
 const app = express();
 const server = http.createServer(app);
 app.use(express.json());
@@ -151,8 +150,9 @@ connectToDatabase().then(() => {
 
 
 
+const port = process.env.PORT || 3000;
 
-server.listen(3000, () => {
+server.listen(port, () => {
   console.log("Server stated at 3000")
 })
 
