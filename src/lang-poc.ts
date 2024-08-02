@@ -33,11 +33,23 @@ const translate = new Translate({
   projectId: "flex-dev-test",
   keyFilename: "flex-dev-test.json"
 });
-
+export const LOCALES = [
+  "en",
+  "hi",
+  "zh",
+  "ar",
+  "ur",
+  "fr",
+  "ru",
+  "es",
+] as const;
 
 router.post("/convert-json", async (req, res) => {
   const jsonData = req.body.jsonData;
   const target = req.body.target;
+  if (!LOCALES.includes(target)) {
+    return res.send(`Unsupported language. Supported target langauges are ${LOCALES.toString()}`)
+  }
   // Manipulate JSON data asynchronously
   const keys = Object.keys(jsonData);
   await Promise.all(keys.map(async (key) => {
