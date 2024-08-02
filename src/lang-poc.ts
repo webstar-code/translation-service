@@ -5,6 +5,8 @@ const router = express.Router();
 import multer from 'multer';
 import fs from 'fs';
 import path from 'path';
+import admz from 'adm-zip';
+
 // const upload = multer({ dest: "uploads/" })
 
 const storage = multer.diskStorage({
@@ -60,11 +62,66 @@ router.post("/convert-json", async (req, res) => {
   res.send(jsonData);
 })
 
+// Route to handle multiple file uploads along with form data
+router.post('/upload-files', upload.array('files', 50), async (req, res) => {
+  const zp = new admz();
+  const files = req.files;
+  const target = req.body.target;
+  if (!LOCALES.includes(target)) {
+    return res.send(`Unsupported language. Supported target langauges are ${LOCALES.toString()}`)
+  }
+  if (!files || files.length === 0) return;
+  // @ts-ignore
+  for (const file of files) {
+    const filePath = path.join(__dirname, '../../uploads', file.filename);
+    const fileContent = fs.readFileSync(filePath, 'utf8');
+    let jsonData: any;
+
+    try {
+      jsonData = JSON.parse(fileContent);
+      // Perform your manipulation on jsonData
+      // Manipulate JSON data asynchronously
+      const keys = Object.keys(jsonData);
+      await Promise.all(keys.map(async (key) => {
+        if (jsonData.hasOwnProperty(key)) {
+          jsonData[key] = await translateText(jsonData[key], target);
+        }
+      }));
+      // Write manipulated JSON data to a new file
+      // Save the manipulated JSON to another directory
+      const outputDir = path.join(__dirname, '../../output-uploads');
+      fs.mkdirSync(outputDir, { recursive: true });
+      // @ts-ignore
+      const outputFilePath = path.join(outputDir, file.filename);
+
+      fs.writeFileSync(outputFilePath, JSON.stringify(jsonData, null, 2));
+      zp.addLocalFile(outputFilePath)
+    } catch (error) {
+      console.error('Error parsing JSON:', error);
+      res.status(400).send('Invalid JSON file');
+      return;
+    }
+  }
+  const file_after_download = target + '.zip';
+  const data = zp.toBuffer();
+  res.set('Content-Type', 'application/octet-stream');
+  res.set('Content-Disposition', `attachment; filename=${file_after_download}`);
+  res.set('Content-Length', data.length.toString());
+  res.send(data);
+});
+
 
 router.post("/upload-json", upload.single('jsonFile'), (req, res) => {
   // @ts-ignore
   if (!req.file) {
     return res.status(400).send('No file uploaded');
+  }
+  if (!req.body.target) {
+    return res.status(400).send('No target provided.');
+  }
+  const target = req.body.target;
+  if (!LOCALES.includes(target)) {
+    return res.send(`Unsupported language. Supported target langauges are ${LOCALES.toString()}`)
   }
   // @ts-ignore
   const filePath = path.join(__dirname, '../../uploads', req.file.filename);
@@ -86,7 +143,7 @@ router.post("/upload-json", upload.single('jsonFile'), (req, res) => {
     const keys = Object.keys(jsonData);
     await Promise.all(keys.map(async (key) => {
       if (jsonData.hasOwnProperty(key)) {
-        jsonData[key] = await translateText(jsonData[key], "hi");
+        jsonData[key] = await translateText(jsonData[key], target);
       }
     }));
 
