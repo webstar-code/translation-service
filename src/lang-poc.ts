@@ -1,5 +1,5 @@
 import express from 'express';
-import { movies, redisClient } from './dbConfig.js';
+import { movies, redisClient } from './dbConfig';
 import { Translate, TranslateRequest } from '@google-cloud/translate/build/src/v2';
 const router = express.Router();
 import multer from 'multer';
